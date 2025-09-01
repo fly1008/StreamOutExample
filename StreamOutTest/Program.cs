@@ -10,10 +10,15 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
 using System.Windows;
-
+using SharpDX.Direct3D11;
+using SharpDX.DXGI;
+using SharpDX.MediaFoundation;
+using System.Diagnostics;
 
 namespace StreamOutTest
 {
+    
+
     class Program
     {
         static Image image = new();
@@ -54,6 +59,7 @@ namespace StreamOutTest
             var hdr = client!.Header;
             var writeableBitmap = new WriteableBitmap((int)hdr.videoWidth, (int)hdr.videoHeight, 96, 96, PixelFormats.Bgr32, null);
             image.Source = writeableBitmap;
+            Debug.WriteLine($"VentuzOutA Video Size: {(int)hdr.videoWidth} * {(int)hdr.videoHeight}");
 
             player = new VideoDecoder(hdr.videoCodecFourCC);
 
@@ -100,6 +106,15 @@ namespace StreamOutTest
             };
 
             client?.SendMouseMove(para);
+
+            var paraTouch = new Ventuz.StreamOut.TouchPara
+            {
+                id = 12345,
+                x = (int)Math.Round(pos.X * image.Source.Width / image.ActualWidth),
+                y = (int)Math.Round(pos.Y * image.Source.Height / image.ActualHeight)
+            };
+            client?.SendTouchMove(paraTouch);
+
             e.Handled = true;
         }
 
@@ -112,7 +127,7 @@ namespace StreamOutTest
             e.Handled = true;
         }
 
-        static void OnMouseButtons(object source, MouseButtonEventArgs e)
+        static void OnMouseButtonDown(object source, MouseButtonEventArgs e)
         {
             if (image.Source is null || e.StylusDevice is not null)
                 return;
@@ -124,6 +139,37 @@ namespace StreamOutTest
             if (e.XButton1 == MouseButtonState.Pressed) buttons |= Ventuz.StreamOut.MouseButtonEnum.X1;
             if (e.XButton2 == MouseButtonState.Pressed) buttons |= Ventuz.StreamOut.MouseButtonEnum.X2;
             client?.SendMouseButtons(buttons);
+
+            var pos = e.GetPosition(image);
+            var paraTouch = new Ventuz.StreamOut.TouchPara
+            {
+                id = 12345,
+                x = (int)Math.Round(pos.X * image.Source.Width / image.ActualWidth),
+                y = (int)Math.Round(pos.Y * image.Source.Height / image.ActualHeight)
+            };
+            client?.SendTouchBegin(paraTouch);
+
+            e.Handled = true;
+        }
+
+
+        static void OnMouseButtonUp(object source, MouseButtonEventArgs e)
+        {
+            if (image.Source is null || e.StylusDevice is not null)
+                return;
+
+            var buttons = Ventuz.StreamOut.MouseButtonEnum.None;
+            client?.SendMouseButtons(buttons);
+
+            var pos = e.GetPosition(image);
+            var paraTouch = new Ventuz.StreamOut.TouchPara
+            {
+                id = 12345,
+                x = (int)Math.Round(pos.X * image.Source.Width / image.ActualWidth),
+                y = (int)Math.Round(pos.Y * image.Source.Height / image.ActualHeight)
+            };
+            client?.SendTouchEnd(paraTouch);
+
             e.Handled = true;
         }
 
@@ -202,6 +248,10 @@ namespace StreamOutTest
         [STAThread]
         static void Main()
         {
+            //Debug.WriteLine("开始检测硬件视频编码能力及分辨率支持...");
+            //HardwareEncoderChecker.CheckHardwareEncodersWithResolutions();
+            //Debug.WriteLine("检测完成");
+
             VideoDecoder.FindFfmpeg();
 
             // create preview image
@@ -218,8 +268,8 @@ namespace StreamOutTest
 
             image.MouseMove += OnMouseMove;
             image.MouseLeave += OnMouseLeave;
-            image.MouseDown += OnMouseButtons;
-            image.MouseUp += OnMouseButtons;
+            image.MouseDown += OnMouseButtonDown;
+            image.MouseUp += OnMouseButtonUp;
             image.MouseWheel += OnMouseWheel;
             image.TextInput += OnTextInput;
             image.KeyDown += OnKeyDown;

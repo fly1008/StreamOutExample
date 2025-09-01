@@ -10,6 +10,7 @@ using FFmpeg.AutoGen;
 using Microsoft.Win32;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace StreamOutTest
 {
@@ -125,6 +126,10 @@ namespace StreamOutTest
             SwsContext* sws = null;
 
             // open video decoder
+
+            uint fourCC264 = Ventuz.StreamOut.Client.FourCC('h', '2', '6', '4');
+            uint fourCC265 = Ventuz.StreamOut.Client.FourCC('h', '2', '6', '5');
+            uint fourCC2651 = Ventuz.StreamOut.Client.FourCC('h', 'e', 'v', 'c');
 
             AVCodec* codec;
             if (fourCC == Ventuz.StreamOut.Client.FourCC('h', 'e', 'v', 'c'))
